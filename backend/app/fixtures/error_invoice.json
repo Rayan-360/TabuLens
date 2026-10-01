@@ -1,0 +1,17 @@
+{
+  "vendor": "Acme Office Supplies",
+  "invoice_no": "INV-2026-0418",
+  "line_items": [
+    {"description": "A4 Paper (ream)", "qty": 12, "unit_price": 4.50, "line_total": 54.00,
+     "confidence": {"description": 0.99, "qty": 0.98, "unit_price": 0.97, "line_total": 0.96}},
+    {"description": "Ballpoint Pens (box)", "qty": 8, "unit_price": 7.25, "line_total": 58.00,
+     "confidence": {"description": 0.98, "qty": 0.99, "unit_price": 0.95, "line_total": 0.97}},
+    {"description": "Stapler", "qty": 3, "unit_price": 16.50, "line_total": 45.50,
+     "confidence": {"description": 0.99, "qty": 0.99, "unit_price": 0.96, "line_total": 0.42}},
+    {"description": "Sticky Notes (pack)", "qty": 20, "unit_price": 2.10, "line_total": 42.00,
+     "confidence": {"description": 0.97, "qty": 0.98, "unit_price": 0.94, "line_total": 0.95}}
+  ],
+  "subtotal": 199.50,
+  "tax": 19.95,
+  "grand_total": 219.45
+}
