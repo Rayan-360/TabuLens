@@ -97,23 +97,29 @@ def validate(table: dict) -> dict:
 
 
 def _self_check() -> None:
-    import json
-    import pathlib
+    clean = {
+        "line_items": [
+            {"description": "A", "qty": 3, "unit_price": 16.50, "line_total": 49.50},
+            {"description": "B", "qty": 2, "unit_price": 10.00, "line_total": 20.00},
+        ],
+        "subtotal": 69.50, "tax": 6.95, "grand_total": 76.45,
+    }
+    assert validate(clean)["status"] == "ok", "clean invoice should pass"
 
-    fixtures = pathlib.Path(__file__).resolve().parents[1] / "fixtures"
-
-    clean = json.loads((fixtures / "clean_invoice.json").read_text())
-    res = validate(clean)
-    assert res["status"] == "ok", f"clean invoice should pass, got {res}"
-
-    bad = json.loads((fixtures / "error_invoice.json").read_text())
+    # line 1 total wrong (should be 49.50); downstream subtotal/total stay
+    # consistent with the shown wrong value, so only the line is flagged.
+    bad = {
+        "line_items": [
+            {"description": "A", "qty": 3, "unit_price": 16.50, "line_total": 45.50},
+            {"description": "B", "qty": 2, "unit_price": 10.00, "line_total": 20.00},
+        ],
+        "subtotal": 65.50, "tax": 6.55, "grand_total": 72.05,
+    }
     res = validate(bad)
-    assert res["status"] == "error", "error invoice should fail"
-    # the planted error is a line error on line 3 (index 2)
     locs = [i["location"] for i in res["issues"]]
-    assert "line_items[2]" in locs, f"expected line 3 flagged, got {locs}"
+    assert res["status"] == "error" and locs == ["line_items[0]"], f"got {res}"
 
-    print("OK — clean invoice passes; error invoice flags:", locs)
+    print("OK — clean passes; error flags:", locs)
     for i in res["issues"]:
         print("  -", i["message"])
 

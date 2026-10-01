@@ -1,15 +1,11 @@
 """Vision extractor — stands in for the DETR+TrOCR pipeline.
 
-Sends an invoice image to a vision model and asks for the table as structured
-JSON with a confidence per field. Extraction quality is NOT the point of the
-demo; the reasoner is. If the model misreads a cell, that's fine — it's exactly
-what the trust layer exists to catch.
+Sends an invoice image to Groq (a vision model) and asks for the table as
+structured JSON with a confidence per field. Extraction quality is NOT the point
+of the demo; the reasoner is. If the model misreads a cell, that's fine — it's
+exactly what the trust layer exists to catch.
 
-Provider chain (tried in order, first success wins):
-  1. Gemini   (GEMINI_API_KEY)
-  2. Groq     (GROQ_API_KEY)   — automatic failover if Gemini errors/rate-limits
-
-The returned table carries "_provider" naming which one answered.
+Needs GROQ_API_KEY in the environment. ~2s per image.
 """
 
 from __future__ import annotations
@@ -18,7 +14,6 @@ import base64
 import json
 import os
 
-GEMINI_MODEL = "gemini-3.8-flash"
 GROQ_MODEL = "qwen/qwen3.8-27b"
 
 _PROMPT = """You are extracting a financial table (invoice) from an image.
@@ -36,6 +31,9 @@ Return ONLY valid JSON, no markdown fence, with this exact shape:
   "grand_total": number
 }
 
+For "tax", extract the tax AMOUNT of money shown (e.g. a line like
+"Sales Tax 6.25%  9.06" means tax = 9.06), NOT the percentage rate.
+
 Report the numbers EXACTLY as printed in the image, even if the arithmetic looks
 wrong — do not silently correct them. confidence is your own certainty per field.
 """
@@ -48,19 +46,12 @@ def _parse_json(text: str) -> dict:
     return json.loads(text)
 
 
-def _gemini(image_bytes: bytes, mime_type: str) -> dict:
-    key = os.environ.get("GEMINI_API_KEY")
-    if not key:
-        raise RuntimeError("GEMINI_API_KEY not set")
-    import google.generativeai as genai
+def extract(image_bytes: bytes, mime_type: str = "image/png") -> dict:
+    """Image bytes -> extracted table dict (with "_provider").
 
-    genai.configure(api_key=key)
-    model = genai.GenerativeModel(GEMINI_MODEL)
-    resp = model.generate_content([_PROMPT, {"mime_type": mime_type, "data": image_bytes}])
-    return _parse_json(resp.text)
-
-
-def _groq(image_bytes: bytes, mime_type: str) -> dict:
+    Raises on missing key / API error / bad JSON so the caller can fall back to
+    fixture mode.
+    """
     key = os.environ.get("GROQ_API_KEY")
     if not key:
         raise RuntimeError("GROQ_API_KEY not set")
@@ -76,24 +67,6 @@ def _groq(image_bytes: bytes, mime_type: str) -> dict:
             {"type": "image_url", "image_url": {"url": f"data:{mime_type};base64,{b64}"}},
         ]}],
     )
-    return _parse_json(resp.choices[0].message.content)
-
-
-_PROVIDERS = [("gemini", _gemini), ("groq", _groq)]
-
-
-def extract(image_bytes: bytes, mime_type: str = "image/png") -> dict:
-    """Image bytes -> extracted table dict (with "_provider").
-
-    Tries each provider in order; returns the first success. Raises with every
-    provider's error if all fail, so the caller can fall back to fixture mode.
-    """
-    errors = []
-    for name, fn in _PROVIDERS:
-        try:
-            table = fn(image_bytes, mime_type)
-            table["_provider"] = name
-            return table
-        except Exception as e:  # rate limit, missing key, bad JSON — try the next
-            errors.append(f"{name}: {e}")
-    raise RuntimeError("all extractors failed → " + " | ".join(errors))
+    table = _parse_json(resp.choices[0].message.content)
+    table["_provider"] = "groq"
+    return table
