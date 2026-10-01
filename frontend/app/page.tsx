@@ -4,7 +4,7 @@ import { useState } from "react";
 import { submitDocument } from "@/lib/api";
 import type { ExtractResult } from "@/lib/types";
 import {
-  UploadDropzone, ResultsTable, ValidationSummary, StatusPill, ConfidenceLegend, IconLens,
+  UploadDropzone, ResultsTable, ValidationSummary, StatusLine, ConfidenceLegend, IconMark,
 } from "./components";
 
 type Result = ExtractResult & { _ms: number };
@@ -30,78 +30,69 @@ export default function Home() {
     setPreview((p) => { if (p) URL.revokeObjectURL(p); return null; });
   }
 
-  const provider = result?.table?._provider;
-
   return (
     <>
-      <div className="appbar">
-        <div className="container appbar-inner">
-          <div className="brand">
-            <span className="brand-mark"><IconLens /></span>
-            Tabu<span style={{ color: "var(--accent)" }}>Lens</span>
-          </div>
-          <span className="chip"><span className="dot" /> Groq vision · live</span>
+      <header className="topbar">
+        <div className="wrap topbar-in">
+          <span className="word"><span className="mk"><IconMark /></span>TabuLens</span>
+          <span className="tag">Financial table verification</span>
         </div>
-      </div>
+      </header>
 
-      <main className="container" style={{ paddingBottom: 80 }}>
-        {!result && !busy && (
-          <section className="hero">
-            <h1>Trust the numbers,<br /><span className="grad">not just the text.</span></h1>
-            <p>
-              TabuLens extracts a financial table from a document, then verifies its
-              arithmetic — catching the errors that raw extraction, and raw LLMs, pass
-              silently.
-            </p>
-          </section>
-        )}
-
+      <main className="wrap" style={{ paddingBottom: 96 }}>
         {!result ? (
-          <div style={{ maxWidth: 680, margin: "0 auto", paddingTop: busy ? 48 : 0 }}>
-            <UploadDropzone onFile={handleFile} busy={busy} />
-            {error && (
-              <div className="banner err" role="alert" style={{ marginTop: 20 }}>
-                <div style={{ fontWeight: 600 }}>{error}</div>
-              </div>
+          <>
+            {!busy && (
+              <section className="intro">
+                <h1>Trust the numbers, not just the text.</h1>
+                <p>
+                  TabuLens reads a financial table from a document and checks that its
+                  arithmetic holds — surfacing the errors extraction alone leaves behind.
+                </p>
+              </section>
             )}
-          </div>
+            <div style={{ maxWidth: 560, margin: "0 auto", paddingTop: busy ? 72 : 0 }}>
+              <UploadDropzone onFile={handleFile} busy={busy} />
+              {error && (
+                <div className="note bad" role="alert" style={{ marginTop: 16 }}>
+                  <div><div className="nt">Couldn’t read that document</div>
+                    <div style={{ color: "var(--ink-2)", fontSize: 14 }}>{error}</div></div>
+                </div>
+              )}
+            </div>
+          </>
         ) : (
-          <div className="fade-in" style={{ paddingTop: 28 }}>
-            {/* summary bar */}
+          <div className="rise" style={{ paddingTop: 36 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
-              flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                <StatusPill validation={result.validation} />
-                <span style={{ color: "var(--text-faint)", fontSize: 14 }}>
-                  Extracted in {(result._ms / 1000).toFixed(1)}s
-                  {provider && <> · via <span style={{ textTransform: "capitalize" }}>{provider}</span></>}
-                </span>
+              gap: 16, flexWrap: "wrap", paddingBottom: 28, borderBottom: "1px solid var(--hair)" }}>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 14, flexWrap: "wrap" }}>
+                <StatusLine validation={result.validation} />
+                <span className="meta">Read in {(result._ms / 1000).toFixed(1)}s</span>
               </div>
-              <button className="btn ghost" onClick={reset}>Analyze another</button>
+              <button className="btn quiet" onClick={reset}>Check another</button>
             </div>
 
-            <div className="results">
-              {/* left: source document */}
+            <div className="results" style={{ paddingTop: 32 }}>
               <aside className="source-sticky">
-                <div className="card card-pad">
-                  <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: ".05em",
-                    textTransform: "uppercase", color: "var(--text-faint)", marginBottom: 12 }}>
-                    Source document
+                <div className="label">Source</div>
+                {preview && (
+                  <div className="source-frame">
+                    <img src={preview} alt="Uploaded invoice" />
                   </div>
-                  {preview && <img className="source-img" src={preview} alt="Uploaded invoice" />}
-                </div>
+                )}
               </aside>
 
-              {/* right: validation + table */}
-              <div style={{ display: "grid", gap: 18 }}>
+              <section>
                 <ValidationSummary validation={result.validation} />
+                <div style={{ height: 28 }} />
                 <ResultsTable table={result.table} validation={result.validation} />
+                <div style={{ height: 22 }} />
                 <ConfidenceLegend />
-                <p style={{ color: "var(--text-faint)", fontSize: 13, margin: 0 }}>
-                  Red cells are flagged by the reasoner — the arithmetic itself is wrong,
-                  independent of how confident the extractor was.
+                <p className="foot" style={{ marginTop: 16 }}>
+                  A red figure is flagged by the checker — the arithmetic itself is wrong,
+                  regardless of how confident the reader was in that field.
                 </p>
-              </div>
+              </section>
             </div>
           </div>
         )}
