@@ -9,11 +9,11 @@ type S = React.SVGProps<SVGSVGElement>;
 
 export function IconMark(p: S) {
   return (
-    <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor"
-      strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...p}>
-      <rect x="3.25" y="3.25" width="17.5" height="17.5" rx="2.5" />
-      <path d="M3.25 9h17.5M9 9v11.75" />
-      <circle cx="15.3" cy="14.3" r="2.1" /><path d="m17 16 1.9 1.9" />
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor"
+      strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...p}>
+      <rect x="3.5" y="3.5" width="17" height="17" rx="2.5" />
+      <path d="M3.5 9h17M9 9v11.5" />
+      <circle cx="15.2" cy="14.2" r="2" /><path d="m16.8 15.8 1.9 1.9" />
     </svg>
   );
 }
@@ -35,7 +35,7 @@ function IconAlert(p: S) {
 }
 function IconUpload(p: S) {
   return (
-    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor"
+    <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor"
       strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...p}>
       <path d="M12 15V4m0 0L8 8m4-4 4 4M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" />
     </svg>
@@ -63,9 +63,9 @@ function Dot({ score }: { score?: number }) {
   const pct = score == null ? "n/a" : `${Math.round(score * 100)}%`;
   return <span className="dot" style={{ background: confColor(score) }} title={`confidence ${pct}`} aria-label={`confidence ${pct}`} />;
 }
-function Num({ value, score, flag }: { value?: number | string; score?: number; flag?: boolean }) {
+function Num({ value, score, flag, cls = "" }: { value?: number | string; score?: number; flag?: boolean; cls?: string }) {
   return (
-    <span className={`num${flag ? " flag" : ""}`}>
+    <span className={`num${flag ? " flag" : ""}${cls ? " " + cls : ""}`}>
       {typeof value === "number" ? value.toFixed(2) : value}
       {score !== undefined && <Dot score={score} />}
     </span>
@@ -107,57 +107,59 @@ export function ValidationSummary({ validation }: { validation: Validation }) {
   );
 }
 
-/* ---------- results table ---------- */
+/* ---------- data panel: header + table ---------- */
 
 export function ResultsTable({ table, validation }: { table: Table; validation: Validation }) {
   const flagged = new Set((validation.issues || []).map((i) => i.location));
   const items = table.line_items || [];
 
   return (
-    <table className="inv">
-      <caption>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
-          <span style={{ fontWeight: 600, fontSize: 15.5 }}>{table.vendor || "Invoice"}</span>
-          <span className="tnum" style={{ color: "var(--ink-3)", fontSize: 13.5 }}>{table.invoice_no}</span>
-        </div>
-      </caption>
-      <thead>
-        <tr>
-          <th>Description</th>
-          <th className="r">Qty</th>
-          <th className="r">Unit Price</th>
-          <th className="r">Line Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        {items.map((r, i) => {
-          const bad = flagged.has(`line_items[${i}]`);
-          const c = r.confidence || {};
-          return (
-            <tr key={i} className={bad ? "bad" : undefined}>
-              <td className="desc">{r.description}</td>
-              <td className="r"><Num value={r.qty} score={c.qty} /></td>
-              <td className="r"><Num value={r.unit_price} score={c.unit_price} /></td>
-              <td className="r"><Num value={r.line_total} score={c.line_total} flag={bad} /></td>
+    <div className="data">
+      <div className="data-h">
+        <span className="v">{table.vendor || "Invoice"}</span>
+        <span className="n tnum">{table.invoice_no}</span>
+      </div>
+      <div className="data-b">
+        <table className="inv">
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th className="r">Qty</th>
+              <th className="r">Unit Price</th>
+              <th className="r">Line Total</th>
             </tr>
-          );
-        })}
-      </tbody>
-      <tfoot className="totals">
-        <tr>
-          <td className="r lbl" colSpan={3}>Subtotal</td>
-          <td className="r"><Num value={table.subtotal} flag={flagged.has("subtotal")} /></td>
-        </tr>
-        <tr>
-          <td className="r lbl" colSpan={3}>Tax</td>
-          <td className="r"><span className="num">{Number(table.tax ?? 0).toFixed(2)}</span></td>
-        </tr>
-        <tr className="grand">
-          <td className="r" colSpan={3}>Grand Total</td>
-          <td className="r"><Num value={table.grand_total} flag={flagged.has("grand_total")} /></td>
-        </tr>
-      </tfoot>
-    </table>
+          </thead>
+          <tbody>
+            {items.map((r, i) => {
+              const bad = flagged.has(`line_items[${i}]`);
+              const c = r.confidence || {};
+              return (
+                <tr key={i} className={bad ? "bad" : undefined}>
+                  <td className="desc">{r.description}</td>
+                  <td className="r"><Num value={r.qty} score={c.qty} /></td>
+                  <td className="r"><Num value={r.unit_price} score={c.unit_price} /></td>
+                  <td className="r"><Num value={r.line_total} score={c.line_total} flag={bad} /></td>
+                </tr>
+              );
+            })}
+          </tbody>
+          <tfoot className="totals">
+            <tr>
+              <td className="r lbl" colSpan={3}>Subtotal</td>
+              <td className="r"><Num value={table.subtotal} flag={flagged.has("subtotal")} /></td>
+            </tr>
+            <tr>
+              <td className="r lbl" colSpan={3}>Tax</td>
+              <td className="r"><span className="num">{Number(table.tax ?? 0).toFixed(2)}</span></td>
+            </tr>
+            <tr className="grand">
+              <td className="r lbl" colSpan={3}>Grand Total</td>
+              <td className="r"><Num value={table.grand_total} flag={flagged.has("grand_total")} cls="g" /></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
   );
 }
 
@@ -192,6 +194,35 @@ export function UploadDropzone({ onFile, busy }: { onFile: (f: File) => void; bu
       <div className="t">{busy ? "Reading the document…" : "Drop an invoice, or click to choose a file"}</div>
       <div className="s">PNG or JPG · the table is read, then its arithmetic is checked</div>
       <input ref={inputRef} type="file" accept="image/*" hidden onChange={(e) => pick(e.target.files?.[0])} />
+    </div>
+  );
+}
+
+/* ---------- sample picker ---------- */
+
+const SAMPLES = [
+  { file: "clean.png", name: "Office supplies", kind: "4 line items" },
+  { file: "techparts.png", name: "Electronics", kind: "4 line items" },
+  { file: "error.png", name: "Furnishings", kind: "4 line items" },
+];
+
+export function SamplePicker({ onPick, busy }: { onPick: (f: File) => void; busy: boolean }) {
+  async function choose(file: string) {
+    if (busy) return;
+    const blob = await fetch(`/samples/${file}`).then((r) => r.blob());
+    onPick(new File([blob], file, { type: "image/png" }));
+  }
+  return (
+    <div className="samples">
+      <div className="samples-h">or start with a sample</div>
+      <div className="sample-row">
+        {SAMPLES.map((s) => (
+          <button key={s.file} className="sample" onClick={() => choose(s.file)} disabled={busy}>
+            <span className="thumb" style={{ backgroundImage: `url(/samples/${s.file})` }} />
+            <span className="cap"><b>{s.name}</b><span>{s.kind}</span></span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
